@@ -10,7 +10,7 @@ from collections import deque
 from tensorflow.keras.layers import Dense,Dropout,LSTM
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam,RMSprop
-from Environment import FinanceStock
+from environment import FinanceStock
 from sklearn.metrics import accuracy_score
 
 
