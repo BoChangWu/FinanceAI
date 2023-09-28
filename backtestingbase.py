@@ -75,7 +75,7 @@ class BacktestingBaseRM:
             units = int(amount/price)
 
         self.current_balance -= (1 + self.ptc) * units * price + self.ftc
-        self.units += self.units
+        self.units += units
         self.trades +=1
         self.set_prices(price)
 
