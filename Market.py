@@ -8,6 +8,7 @@ class Market_Data:
         
         self.tw_stocks= dict()
         self._stocks_list_tw()
+        self._to_ticker()
     
     def _stocks_list_tw(self) -> None:
         '''
