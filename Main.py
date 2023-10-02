@@ -22,20 +22,20 @@ agent = TradingBot(learn_env,valid_env)
 agent.learn(episodes)
 env = test_env
 tb = TBBacktesterRM(env,agent.model,10000,0.0,0,verbose=False)
-# 無任何風險衡量指標而回測交易機器人的績效
-tb.backtest_strategy(sl=None,tsl=None,tp=None,wait=5)
-# 使用 SL單回測交易機器人績效(無保證)
-tb.backtest_strategy(sl=None,tsl=None,tp=None,wait=10,guarantee=False)
-# 使用 SL單回測交易機器人績效(有保證)
-tb.backtest_strategy(sl=0.3,tsl=None,tp=None,wait=5,guarantee=True)
-# 回測有TSL單的交易機器人績效
-tb.backtest_strategy(sl=None,tsl=0.015,tp=None,wait=5)
-# 使用TP單回測交易機器人績效(無保證)
-tb.backtest_strategy(sl=None,tsl=None,tp=0.015,wait=5,guarantee=False)
-# 使用TP單回測交易機器人績效(有保證)
-tb.backtest_strategy(sl=None,tsl=None,tp=0.015,wait=5,guarantee=True)
-# SL 結合 TP
-tb.backtest_strategy(sl=0.015,tsl=None,tp=0.0185,wait=5)
-# TSL 結合 TP
-tb.backtest_strategy(sl=None,tsl=0.02,tp=0.02,wait=5)
+# # 無任何風險衡量指標而回測交易機器人的績效
+# tb.backtest_strategy(sl=None,tsl=None,tp=None,wait=5)
+# # 使用 SL單回測交易機器人績效(無保證)
+# tb.backtest_strategy(sl=None,tsl=None,tp=None,wait=10,guarantee=False)
+# # 使用 SL單回測交易機器人績效(有保證)
+# tb.backtest_strategy(sl=0.3,tsl=None,tp=None,wait=5,guarantee=True)
+# # 回測有TSL單的交易機器人績效
+# tb.backtest_strategy(sl=None,tsl=0.015,tp=None,wait=5)
+# # 使用TP單回測交易機器人績效(無保證)
+# tb.backtest_strategy(sl=None,tsl=None,tp=0.015,wait=5,guarantee=False)
+# # 使用TP單回測交易機器人績效(有保證)
+# tb.backtest_strategy(sl=None,tsl=None,tp=0.015,wait=5,guarantee=True)
+# # SL 結合 TP
+# tb.backtest_strategy(sl=0.015,tsl=None,tp=0.0185,wait=5)
+# # TSL 結合 TP
+# tb.backtest_strategy(sl=None,tsl=0.02,tp=0.02,wait=5)
 
