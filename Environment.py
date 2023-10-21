@@ -43,6 +43,8 @@ class FinanceStock:
         self.end = end
         self.mu = mu
         self.std = std
+        self.observation_space = observation_space(self.lags)
+        self.action_space = action_space(2)
         
         self._get_data()
         self._prepare_data()
@@ -56,14 +58,16 @@ class FinanceStock:
 
         if self.intraday:
             self.raw = self.raw.resample('30min',label='right').last()
-    
+
+        self.raw = pd.DataFrame(self.raw['Close'])
+        self.raw.columns = [self.symbol]
+
     def _prepare_data(self):
         '''
         製作更多欄位作為資料
         '''
-        self.data = pd.DataFrame(self.raw['Close'])
-        self.data.columns = [self.symbol]
-        self.data  = self.data.iloc[int(self.start)*len(self.data)]
+        self.data = pd.DataFrame(self.raw[self.symbol])
+        self.data  = self.data.iloc[int(self.start*len(self.data)):]
         # 對數報酬率
         self.data['r'] = np.log(self.data / self.data.shift(1))
         self.data.dropna(inplace=True)
@@ -79,7 +83,7 @@ class FinanceStock:
             self.mu = self.data.mean()
             self.std = self.data.std()
 
-        # 高斯正規化
+        # Z-score
         self.data_ = (self.data - self.mu) / self.std
         # 買賣信號
         self.data['d'] = np.where(self.data['r'] > 0,1,0)
@@ -87,7 +91,7 @@ class FinanceStock:
 
         if self.end is not None:
             self.data = self.data.iloc[:int(self.end*len(self.data))]
-            self.data_ = self.data_.iloc[:int(self.end*len(self.data))]
+            self.data_ = self.data_.iloc[:int(self.end*len(self.data_))]
 
     def _get_state(self,bar=None):
         '''
@@ -134,7 +138,7 @@ class FinanceStock:
         elif (self.performance < self.min_performance) and (self.bar > self.lags + 15):
             done = True
         elif (self.accuracy < self.min_accuracy) and (self.bar > self.lags + 15):
-            deon = True
+            done = True
         else:
             done = False
 

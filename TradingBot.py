@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 import pandas as pd
@@ -40,8 +41,20 @@ class TradingBot:
         self.vperformances = list()
         self.memory = deque(maxlen=200)
         self.train_histories = list()
-        self.model = self._build_model(hidden_units,hidden_layers,learning_rate,dropout)
+        self.model_url = './model'
+        self.model = self._load_model if self._find_model() else self._build_model(hidden_units,hidden_layers,learning_rate,dropout) 
 
+    def _find_model(self):
+        
+        for r,d,f in os.walk(self.model_url):
+            if self.learn_env in f:
+                return True
+            
+        return False
+
+    def _load_model(self):
+        
+        tf.keras.saving.load_model(self.model_url+'/'+self.learn_env.symbol)
 
     def _build_model(self,hu,hl,lr,dropout):
         '''
@@ -58,7 +71,7 @@ class TradingBot:
                 model.add(Dropout(0.3,seed=100))
 
         model.add(Dense(2,activation='linear'))
-        model.compile(loss='mse',optimizer=RMSprop)
+        model.compile(loss='mse',optimizer=RMSprop(learning_rate=lr))
         return model
     
     def act(self,state):
@@ -99,7 +112,11 @@ class TradingBot:
             for _ in range(10000):
                 action = self.act(state)
                 next_state,reward,done,info = self.learn_env.step(action)
-                next_state = np.reshape(next_state,[1,self.learn_env.lags,self.learn_env.n_features])
+                
+                try:
+                    next_state = np.reshape(next_state,[1,self.learn_env.lags,self.learn_env.n_features])
+                except:
+                    print(next_state.shape)
                 self.memory.append([state,action,reward,next_state,done])
                 
                 state = next_state
@@ -114,14 +131,16 @@ class TradingBot:
                     self.aperformances.append(sum(self.performances[-25:]) / 25)
                     self.max_treward = max(self.max_treward,treward)
 
-                    templ = 'episode: {:2d}/{} | treward: {:4d} | perf: {:5.3f} | av: {:5.1f} | max: {:4d}'
-                    print(templ.format(e,episodes,treward,perf,av,self.max_treward))
+                    templ = 'episode: {:2d}/{} | treward: {:4d} | perf: {:5.3f} | av: {:5.1f} | max: {:4d} '
+                    print(templ.format(e,episodes,treward,perf,av,self.max_treward),end='\r')
                     break
         
-        if self.val:
-            self.validate(e,episodes)
-        if len(self.memory) > self.batch_size:
-            self.replay()
+            if self.val:
+                self.validate(e,episodes)
+            if len(self.memory) > self.batch_size:
+                self.replay()
+        
+        self.model.save(f'./models/{self.learn_env.symbol}')
 
     def validate(self,e,episodes):
         '''
@@ -140,7 +159,7 @@ class TradingBot:
                 perf = self.valid_env.performance
                 self.vperformances.append(perf)
 
-                if e % int(episodes / 6) == 0:
+                if e % 10 == 0:
                     templ = 71*'='
                     templ = '\n episode: {:2d}/{} | VALIDATION | treward: {:4d} | perf: {:5.3f} | eps: {:.2f}\n'
                     templ += 71*'='
@@ -156,7 +175,7 @@ def plot_treward(agent):
     x = range(1,len(agent.averages)+1)
     y = np.polyval(np.polyfit(x,agent.averages,deg=3),x)
     plt.plot(x,agent.averages,label='moving average')
-    plt.plot(x,y,'r--',labl='regression')
+    plt.plot(x,y,'r--',label='regression')
     plt.xlabel('episodes')
     plt.ylabel('total reward')
     plt.legend()
@@ -173,7 +192,7 @@ def plot_performance(agent):
 
     if agent.val:
         y_ = np.polyval(np.polyfit(x,agent.vperformances,deg=3),x)
-        plt.plot(x,agent.vperfomances[:],label='validation')
+        plt.plot(x,agent.vperformances[:],label='validation')
         plt.plot(x,y_,'r--',label='regression (valid)')
 
     plt.xlabel('episodes')
