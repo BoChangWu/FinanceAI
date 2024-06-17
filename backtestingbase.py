@@ -25,7 +25,7 @@ class BacktestingBaseRM:
         依給定的bar 回傳 date 與 price
         '''
         date = str(self.env.data.index[bar])[:10]
-        price = self.env.data[self.env.symbol].iloc[bar]
+        price = self.env.data['Close'].iloc[bar]
 
         return date,price
     

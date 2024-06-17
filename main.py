@@ -1,243 +1,108 @@
-import os
 import time
-import talib
-import traceback
-import numpy as np
-import pandas as pd
-import yfinance as yf
-import tensorflow as tf
-import pandas_datareader.data as web
-from matplotlib import pyplot as plt
+import json
+from datetime import datetime
+from stock_data_fetch import *
+from technical_analysis import *
+from update_machine import *
 
-import matplotlib
-matplotlib.rc('font', family='Microsoft JhengHei')
+from is_open import is_open
 
-url = './data/stock_list.csv'
-stockdata_url = './data/stocks_info/'
+from environment import FinanceStock
+from tradingbot import TradingBot,plot_treward,plot_performance,set_seeds
+from backtester import TBBacktesterRM
 
-basics = ['totalRevenue',
-          'grossMargins',
-          'operatingMargins',
-          'profitMargins',
-          'EPS',
-          'PE',
-          'payoutRatio',
-          'bookValuePerShare',
-          'operatingCashflow',
-         'freeCashflow',
-          'sharesOutstanding'
-         ]
+# StockEnv
+from StocksEnv import FinanceEnv
+from technical_analysis import strategy_1
+from finance import Finance,Stock,get_major
+f = open('setting.json')
+setting = json.load(f)
+# start = f"{setting['Base']['last_year']}-01-01"
+start = setting['TA']['period'][0]
+end = setting['TA']['period'][1]
+h_url = setting['Base']['consitution_url']
+p_weight = setting['Base']['portfolio_weight']
+tmc_url = setting['Base']['threeMajor_url']
+features = setting['Base']['features_fix']
+check_time = setting['Base']['check_time']
+# if no data #######
+# get_history(h_url)
+
+# short = ShortTerm(start,end)
+# long = LongTerm(start,end)
+# v_list = short.pick_stock(p_weight['Risky'])
+# s_list = long.pick_stock(p_weight['Stable'])
+# print(v_list)
+# print(s_list)
+# p_list = v_list + s_list
 
 
-# 讀取所有票資訊
-def get_all_stocks_info(source,saving=False):
-    stocks = pd.read_csv(source,index_col=0)
-    stocks_dict = {}
+# now = datetime.strftime(datetime.now(),'%Y-%m-%d')
+# m = Stocks('2023-01-01',now,features)
 
-    for i in range(len(stocks)):
-        s = stocks.iloc[i]
+# print([ (i,s.bband) for i,s in m.stocks.items()])
+
+# m.define_ready()
+
+# print(m.ready)
+
+# port = Portfolio(p_list)
+# port.bolling_band()
+# port.plot_bolling_band(start,end)
+
+# tm = ThreeMajor(tmc_url)
+# tm.history()
+
+# listen = Update_Machine(daily=[tm])
+
+# listen.daily_listening(datetime(2023,1,15,15,00,00))
+
+# tm.daily_data(datetime.now())
+
+
+# StocksEnv
+# a = FinanceEnv('2023-01-01',now,strategy_1,features)
+
+# a.define_ready()
+# a.build_env()
+# a.create_agent()
+# a.build_backtest()
+# a.backtest()
+
+# 看盤、選股
+# a= Finance(total_amount=100000)
+# a.select_stocks(2)
+# 操盤
+# 分析
+
+# 就單一股票觀察
+hour,minute = check_time.split(':')
+hour = int(hour)
+minute = int(minute)
+a = Stock(symbol='2330.TW',amount=1000000)
+a.backtest(sl=0.015)
+
+now_time = datetime.now()
+tmc = []
+
+while now_time.hour != 0:
+
+    t = datetime.now()
+    # print(t.hour,hour,t.minute,minute)
+    if t.hour == hour and t.minute == minute:
         
-        if s['代號'] > 9999:
-            continue
-        elif 'KY' in s['股票名稱']:
-            continue
-        symbol = str(s['代號']).zfill(4) if s['代號']< 1000 else str(s['代號'])
-        stocks_dict[s['股票名稱']] = yf.Ticker(symbol+'.TW')
-        
+        if is_open():
             
-        if saving:
-            
-            stock_data=None
-            info = stocks_dict[s['股票名稱']].info
-            
-            for r,d,f in os.walk(stockdata_url):
-                if f == symbol + '.csv':
-                    stock_data = pd.read_csv(stockdata_url+symbol+'.csv')
+            if datetime.strftime(datetime.now(),'%Y%m%d') not in tmc:
+                print('update tmc..')
+                tmc.append(get_major())
 
-            revenue = info['totalRevenue'] if 'totalRevenue' in info.keys() else 0
-            grossMargins = info['grossMargins'] if 'grossMargins' in info.keys() else 0.0
-            operatingMargins = info['operatingMargins'] if 'operatingMargins' in info.keys() else 0.0
-            profitMargins = info['profitMargins'] if 'profitMargins' in info.keys() else 0.0
-            EPS = info['trailingEps'] if 'trailingEps' in info.keys() else 0.0
-            PE = info['currentPrice']/ info['trailingEps']*100 if 'trailingEps' in info.keys() else 0.0
-            payoutRatio = info['payoutRatio'] if 'payoutRatio' in info.keys() else 0
-            bookValuePerShare = info['bookValue'] / info['sharesOutstanding'] if 'sharesOutstanding' in info.keys() else 0.0
-            operatingCashflow = info['operatingCashflow'] if 'operatingCashflow' in info.keys() else 0
-            freeCashflow = info['freeCashflow'] if 'freeCashflow' in info.keys() else 0
-            sharesOutstanding = info['sharesOutstanding'] if 'sharesOutstanding' in info.keys() else 0
-            
-            
-            if stock_data:
-                stock_data.append([[revenue,grossMargins,operatingMargins,profitMargins,EPS,
-                                   PE,payoutRatio,bookValuePerShare,operatingCashflow,freeCashflow,sharesOutstanding]])
-                
-            else:
-                stock_data = pd.DataFrame([[revenue,grossMargins,operatingMargins,profitMargins,EPS,
-                                   PE,payoutRatio,bookValuePerShare,operatingCashflow,freeCashflow,sharesOutstanding]])
-                stock_data.columns = basics
-            
-            stock_data.to_csv(stockdata_url+symbol+'.csv')
-         
-        
-        
-            if i%10 == 0:
-                time.sleep(1.5)
+            a.update_state()
+        else:
+            print('not open.')
+
+    a.start()
     
-    return stocks_dict
+    time.sleep(5)
 
-stock_list = get_all_stocks_info(url,saving=False)
-
-
-comp_health = pd.DataFrame()
-index = 0 
-window = 20
-stock_csv_url= './data/stocks/'
-year = '2022'
-
-
-# PE = info['currentPrice']/ info['trailingEps']
-# 建立market資料
-def build_finance_data():
-    for i,k in stock_list.items():
-        i = ''.join(k if k!='*' else '' for k in i)
-        info = None
-        
-        try:
-            info = k.info
-        except:
-            print(f'{k} cannot get info')
-            index+=1
-            continue
-        
-        if info:
-            start = year + '-01-01'
-            end = year + '-12-31'
-            
-            symbol = info['symbol']
-            growth = info['revenueGrowth'] if 'revenueGrowth' in info.keys() else 0
-            operatingCashflow = info['operatingCashflow'] if 'operatingCashflow' in info.keys() else 0
-            freeCashflow = info['freeCashflow'] if 'freeCashflow' in info.keys() else 0
-            price = info['currentPrice'] if 'currentPrice' in info.keys() else 0
-            value = info['sharesOutstanding']* price if 'sharesOutstanding' in info.keys() else 0
-            
-            yf.pdr_override()
-            raw = web.get_data_yahoo([symbol])
-            data = pd.DataFrame(raw['Close'])
-            # 對數報酬率
-            data['r'] = np.log(data['Close'] / data['Close'].shift(1))
-            data.dropna(inplace=True)
-            # 策略報酬率
-            data['s'] = data['Close'].rolling(window).mean()
-            # 動量
-            data['m'] = data['r'].rolling(window).mean()
-            # 波動率
-            data['v'] = data['r'].rolling(window).std()
-            data.dropna(inplace=True)
-            
-            if 'currentPrice' not in info.keys():
-                print(f"{i}({info['symbol']}) does not have currentPrice")
-            elif 'trailingEps' not in info.keys():
-                print(f"{i}({info['symbol']}) does not have trailingEps")
-            else:
-                # 本益比計算
-                data['PE'] = data['Close'].apply(lambda x: x/info['trailingEps'] if info['trailingEps']!=0 else x)
-            
-            if 'PE' in data.columns and len(data['PE']) > 0:
-                # 儲存csv
-                _m = data.mean()
-                comp_health = comp_health.append([[i,symbol,price,_m['r'],_m['s'],_m['m'],_m['v'],_m['PE'],
-                                                growth,operatingCashflow,freeCashflow,value]])
-                
-                
-                print(f"{i}({info['symbol']}) Done.")
-        index+=1
-        if index % 10 == 0:
-            time.sleep(5)
-
-    comp_health.columns = ['name','symbol','currentPrice','r','s','m','v',
-                        'PE','revenueGrowth','operatingCashflow','freeCashflow','marketValue']
-    comp_health.to_csv(f"{stock_csv_url}market-{year}.csv")
-
-# if 沒有股票的檔案
-build_finance_data()
-# 如果有資料
-comp_health = pd.read_csv(stock_csv_url+f'market-{year}.csv',index_col=0)
-
-# 查看0050的波動作為波動參考基準
-yf.pdr_override()
-raw = web.get_data_yahoo(['0050.TW'])
-standard = pd.DataFrame(raw['Close'])
-
-standard['r'] = np.log(standard['Close'] / standard['Close'].shift(1))
-standard['v'] = standard['r'].rolling(window).std()
-standard.dropna(inplace=True)
-standard = standard[year+'-01-01':year+'-12-31']
-
-# 風險股
-# 波動率大於 0.018，略大於市場
-v_stocks=comp_health.loc[comp_health['v']>0.018]
-# 本益比介於0~10之間，可以相對便宜的價格購買且可較快回收本金
-v_stocks = v_stocks.loc[(v_stocks['PE']<10)&(v_stocks['PE']>0)]
-# 營收成長大於-0.2
-v_stocks = v_stocks.loc[v_stocks['revenueGrowth']>-0.2]
-# 營運現金流大於0
-v_stocks = v_stocks.loc[v_stocks['operatingCashflow']>0]
-# 對數報酬率大於0
-v_stocks = v_stocks.loc[v_stocks['r']>0]
-# 自由現金流大於0
-v_stocks = v_stocks.loc[v_stocks['freeCashflow']>=0]
-# 依照市值大小順序排列
-v_stocks= v_stocks.sort_values('marketValue',ascending=False)
-
-# 穩定股
-# 波動率落在0.006~0.018之間
-s_stocks=comp_health.loc[(comp_health['v']>=0.006)&(comp_health['v']<0.018)]
-# 本益比落在10~20之間
-s_stocks = s_stocks.loc[(s_stocks['PE']>=10)&(s_stocks['PE']<=20)]
-# 營收成長大於-0.1
-s_stocks = s_stocks.loc[s_stocks['revenueGrowth']>-0.1]
-# 營運現金流大於0
-s_stocks = s_stocks.loc[s_stocks['operatingCashflow']>0]
-# 自由現金流大於0
-s_stocks = s_stocks.loc[s_stocks['freeCashflow']>=0]
-# 對數報酬率大於0
-s_stocks = s_stocks.loc[s_stocks['r']>0]
-# 依照市值大小順序排列
-s_stocks = s_stocks.sort_values('marketValue',ascending=False)
-
-
-# 組成投資組合
-comb = (2,4)
-comb_list = s_stocks[:comb[0]]['symbol'].to_list() + v_stocks[:comb[1]]['symbol'].to_list()
-
-portfolio = dict()
-
-# 開始取得投資組合的歷史資料
-for c in comb_list:
-    yf.pdr_override()
-    raw = web.get_data_yahoo([c])
-    portfolio[c] = pd.DataFrame(raw['Close'])
-
-
-# 視覺化投資組合
-def plot_portfolio():
-    for i,k in portfolio.items():
-        upperband,middleband,lowerband = talib.BBANDS(k['Close'],timeperiod=20,nbdevup=2,nbdevdn=2,matype=0)
-        
-        plt.figure(figsize=(10,6))
-
-        plt.plot(upperband['2023-01-01':'2023-10-19'],
-                label="upperband",color='b',
-                linestyle='--')
-        plt.plot(middleband['2023-01-01':'2023-10-19'],
-                label="middleband",color='g',linestyle='--')
-        plt.plot(lowerband['2023-01-01':'2023-10-19'],
-                label="lowerband",color='b',
-                linestyle='--')
-        plt.plot(k['2023-01-01':'2023-10-19']['Close'],
-                label='close',color='r',
-                linestyle='solid',)
-        plt.title(f"{i} Bollinger Band Chart") 
-        plt.xlabel("Day") 
-        plt.ylabel("Bollinger Band")
-        
+    now_time = datetime.now()

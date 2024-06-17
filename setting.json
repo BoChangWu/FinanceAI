@@ -1,0 +1,60 @@
+{
+    "Base":{
+        "stocklist_url": "./data/stock_list.csv",
+        "symbol":[],
+        "features_fix":["Close","r","s","m","v","d"],
+        "window": 20,
+        "consitution_url": "./data/stocks",
+        "threeMajor_url": "./data/TMC",
+        "last_year": "2022",
+        "standard":"0050.TW",
+        "check_time": "18:10",
+        "ptc": 0.003,
+        "ftc": 0.001425,
+        "verbose": true,
+        "holding":[],
+        "portfolio_weight": {"Stable": 2,"Risky": 4},
+        "stable":{
+            "volatility": [0.0,0.019],
+            "PE": [10,null],
+            "revenueGrowth": -0.1
+        }
+
+    },
+    "TA":{
+        "period": ["2023-01-01","2023-10-23"],
+        "BollingBand":{
+            "timeperiod":20,
+            "std": 2
+        }
+    },
+    "Strategy":{
+        "sl": 0.0015,
+        "tsl": null,
+        "tp": 0.0185,
+        "wait": 5,
+        "guarantee": false
+    },
+    "ML":{
+        "start": 0,
+        "split": 0.6,
+        "valid": 0.2,
+        "test": 0.2,
+        "episodes": 100,
+        "environment":{
+
+        },
+        "agent": {
+
+        }
+    },
+    "BackTester":{
+        "amount":10000,
+        "ptc":0.0,
+        "ftc":0,
+        "verbose":false
+    }
+    
+
+    
+}

@@ -9,7 +9,7 @@ class TBBacktesterRM(BacktestingBaseRM):
         '''
         return np.reshape(state,[1,self.env.lags,self.env.n_features])
     
-    def backtest_strategy(self,sl=None,tsl=None,tp=None,wait=5,guarantee=False):
+    def backtest_strategy(self,sl=None,tsl=None,tp=None,wait=4,guarantee=False):
         '''
         交易機器人績效的事件式回測
         其中包含停損、追蹤停損與停利
